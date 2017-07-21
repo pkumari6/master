@@ -1,0 +1,50 @@
+version: '2'
+
+networks:
+  DevOpsNetwork:
+    driver: bridge
+
+services:
+ jenkins:
+  build: ./jenkins
+  image: dockerci/jenkins
+  ports:
+    - "8080:8080"
+  networks:
+    - DevOpsNetwork
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - /usr/local/bin/docker:/usr/bin/docker
+    - /var/volume/jenkins/:/var/jenkins_home/
+ artifactory:
+   build: ./artifactory
+   image: dockerci/artifactory
+   ports:
+     - "8081:8081"
+   networks:
+      - DevOpsNetwork
+   volumes:
+     - /var/volume/artifactory/:/var/opt/jfrog/artifactory
+ sonar:
+  build: ./sonar
+  image: dockerci/sonar
+  ports:
+   - "9000:9000"
+   - "5432:5432"
+  networks:
+    - DevOpsNetwork
+  depends_on:
+    - sonardb
+  environment:
+   - SONARQUBE_JDBC_URL=jdbc:postgresql://sonardb:5432/sonar
+   - SONARQUBE_JDBC_USERNAME=sonar
+   - SONARQUBE_JDBC_PASSWORD=sonar
+ sonardb:
+  networks:
+    - DevOpsNetwork
+  image: postgres
+  environment:
+   - POSTGRES_USER=sonar
+   - POSTGRES_PASSWORD=sonar
+  volumes:
+    - /var/volume/postgres/data:/var/lib/postgresql/data
